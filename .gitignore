@@ -1,0 +1,6 @@
+build.sh
+client.o
+client_ex.c
+main.o
+server.o
+server_ex.c
