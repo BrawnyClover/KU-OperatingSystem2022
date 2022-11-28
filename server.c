@@ -51,8 +51,22 @@ void removClient(int uid){
     pthread_mutex_unlock(&client_list_mutex);
 }
 
-void broadcast(char* msg){
-    
+void broadcast(char* msg, int uid){
+    pthread_mutex_lock(&client_list_mutex);
+    int i=0;
+    for(i=0; i<5; i++){
+        if(clientList.clients[i] != NULL){
+            if(clientList.clients[i]->uid != uid){
+                char intToStr[65];
+                sprintf(intToStr, "%d", uid);
+                char* sendMessage = strcat("User ", intToStr);
+                sendMessage = strcat(sendMessage, " : ");
+                sendMessage = strcat(sendMessage, msg);
+                write(clientList.clients[i]->socket, sendMessage, (int)strlen(sendMessage)+1);
+            }
+        }
+    }
+    pthread_mutex_unlock(&client_list_mutex);
 }
 
 void *serverProcess(void* arg)
@@ -75,9 +89,10 @@ void *serverProcess(void* arg)
             break;
         }
         else{
-            printf("To client %d : ", client->uid);
-            printf("%s\n", recvMessage);
-            write(client->socket, recvMessage, (int)strlen(recvMessage)+1);
+            // printf("To client %d : ", client->uid);
+            printf("Broadcasting : %s\n", recvMessage);
+            // write(client->socket, recvMessage, (int)strlen(recvMessage)+1);
+            broadcast(recvMessage, client->uid);
         }
         printf("\n");
     }
