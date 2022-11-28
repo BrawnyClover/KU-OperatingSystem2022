@@ -57,12 +57,11 @@ void broadcast(char* msg, int uid){
     for(i=0; i<5; i++){
         if(clientList.clients[i] != NULL){
             if(clientList.clients[i]->uid != uid){
-                char intToStr[65];
-                sprintf(intToStr, "%d", uid);
-                char* sendMessage = strcat("User ", intToStr);
-                sendMessage = strcat(sendMessage, " : ");
-                sendMessage = strcat(sendMessage, msg);
-                write(clientList.clients[i]->socket, sendMessage, (int)strlen(sendMessage)+1);
+                char uidStr[2];
+                sprintf(uidStr, "%d", uid);
+                strcat(msg, uidStr);
+
+                write(clientList.clients[i]->socket, msg, (int)strlen(msg)+1);
             }
         }
     }
@@ -71,42 +70,43 @@ void broadcast(char* msg, int uid){
 
 void *serverProcess(void* arg)
 {
-    char sendMessage[10] = {};
-    char recvMessage[10] = {};
-
+    char sendMessage[50] = {};
+    char recvMessage[50] = {};
+    int closeConnect = 0;
     struct ClientInfo *client = (struct ClientInfo *)arg;
+    write(client->socket, "welcome to chatting server!0", (int)strlen("welcome to chatting server!0")+1);
 
     while(1){
-        
+        if(closeConnect == 1){
+            break;
+        }
         read(client->socket, recvMessage, sizeof(recvMessage) - 1);
         printf("From client %d : ", client->uid);
         printf("%s\n", recvMessage);
 
-        if(strcmp(recvMessage, "Q") == 0){
-            printf("To client %d : ", client->uid);
-            printf("%s\n", "Quit");
-            write(client->socket, "Quit", (int)strlen(recvMessage)+1);
-            break;
+        if(strcmp(recvMessage, "quit") == 0){
+            printf("Client %d has left.\n", client->uid);
+            closeConnect = 1;
         }
         else{
-            // printf("To client %d : ", client->uid);
-            printf("Broadcasting : %s\n", recvMessage);
-            // write(client->socket, recvMessage, (int)strlen(recvMessage)+1);
             broadcast(recvMessage, client->uid);
         }
         printf("\n");
+        bzero(sendMessage, sizeof(sendMessage));
+        bzero(recvMessage, sizeof(recvMessage));
     }
 
     close(client->socket);
     removClient(client->uid);
     free(client);
     pthread_detach(pthread_self());
+    return NULL;
 }
 
 int main()
 {
     char ipAddr[16] = "127.0.0.1";
-    int portNum = 12345;
+    int portNum = 1234;
 
     int serverSocket;
     int clientSocket = UNINITIALIZED;
@@ -164,6 +164,8 @@ int main()
                 new->uid = clientList.nextUid++;
                 new->socket = clientSocket;
                 new->address = clientAddr;
+                
+                printf("Client %d connected to server.\n", new->uid);
                 addClient(new);
                 pthread_create(&tid, NULL, &serverProcess, (void*)new);
             }

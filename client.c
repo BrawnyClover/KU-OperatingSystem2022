@@ -7,26 +7,43 @@
 #include <string.h>
 
 int clientSocket;
+int endFlag = 0;
 
-void sender(){
-    char sendMessage[10] = {};
-    printf("To Server : ");
-    scanf("%s", sendMessage);
-    write(clientSocket, sendMessage, (int)strlen(sendMessage));
+void *sender(void* arg){
+    char sendMessage[50] = {};
+    while(1){
+        scanf("%s", sendMessage);
+        write(clientSocket, sendMessage, (int)strlen(sendMessage));
+        if(strcmp(sendMessage, "quit") == 0){
+            endFlag = 1;
+            break;
+        }
+    }
 }
 
-void receiver(){
-    char recvMessage[10] = {};
-    printf("From Server : ");
-    int recvLen = read(clientSocket, recvMessage, sizeof(recvMessage) - 1);
-    recvMessage[recvLen] = '\0';
-    printf("%s\n", recvMessage);
+void *receiver(void* arg){
+    char recvMessage[50] = {};
+    while(1){
+        int recvLen = read(clientSocket, recvMessage, sizeof(recvMessage) - 1);
+        int uid = recvMessage[recvLen-2] - '0';
+        recvMessage[recvLen-2] = '\0';
+        if(uid == 0){
+            printf("Message from server : ");
+        }
+        else{
+            printf("Message from %d : ", uid);
+        }
+        printf("%s\n", recvMessage);
+    }
 }
 
 int main()
 {
     char ipAddr[16] = "127.0.0.1";
-    int portNum = 12345;
+    int portNum = 1234;
+
+    pthread_t senderThread;
+    pthread_t receiverThread;
     
     // printf("Input Server IP Address : ");
     // scanf("%s", ipAddr);
@@ -50,10 +67,32 @@ int main()
         printf("ERROR : connect\n");
         return 0;
     }
-    while(1){
-        sender();
-        receiver();
+
+    err = pthread_create(&senderThread, NULL, (void *) sender, NULL);
+    if(err != 0){
+        printf("ERROR : creating sender thread.\n");
+        return 0;
     }
-    close(clientSocket);
+    else{
+        printf("Initializing client...sender established\n");
+    }
+
+    err = pthread_create(&receiverThread, NULL, (void *) receiver, NULL);
+    if(err != 0){
+        printf("ERROR : creating receiver thread.\n");
+        return 0;
+    }
+    else{
+        printf("Initializing client...receiver established\n");
+    }
+    printf("Client initialized, disconnect command is 'quit'.\n");
+
+    while(1){
+        if(endFlag == 1){
+            printf("Disconnecting...\n");
+            close(clientSocket);
+            break;
+        }
+    }
     return 0;
 }
