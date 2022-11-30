@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include "Output.h"
 
 int clientSocket;
 int endFlag = 0;
@@ -86,6 +87,8 @@ int main()
         printf("Initializing client...receiver established\n");
     }
     printf("Client initialized, disconnect command is 'quit'.\n");
+
+    output_menu_line();
 
     while(1){
         if(endFlag == 1){
