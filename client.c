@@ -5,10 +5,11 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include "Output.h"
+#include "yatch.h"
 
 int clientSocket;
 int endFlag = 0;
+int mode = 0; // 0 : chatting, 1 : yatch
 
 void *sender(void* arg){
     char sendMessage[50] = {};
@@ -23,7 +24,7 @@ void *sender(void* arg){
 }
 
 void *receiver(void* arg){
-    char recvMessage[50] = {};
+    char recvMessage[50] = {}; // 점수를 ascii로 받기
     while(1){
         int recvLen = read(clientSocket, recvMessage, sizeof(recvMessage) - 1);
         int uid = recvMessage[recvLen-2] - '0';
@@ -87,8 +88,6 @@ int main()
         printf("Initializing client...receiver established\n");
     }
     printf("Client initialized, disconnect command is 'quit'.\n");
-
-    output_menu_line();
 
     while(1){
         if(endFlag == 1){

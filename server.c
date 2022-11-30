@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include "yatch.h"
 
 const int UNINITIALIZED = 0;
 
@@ -20,7 +21,14 @@ struct ClientList{
     int nextUid;
 };
 
+struct YatchRoom{
+    struct ClientInfo * clients[2];
+    struct ScoreBoard player1;
+    struct ScoreBoard player2;
+}
+
 struct ClientList clientList;
+struct YatchRoom yatchRoomList[5];
 pthread_mutex_t client_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void addClient(struct ClientInfo *new){
@@ -73,27 +81,39 @@ void *serverProcess(void* arg)
     char sendMessage[50] = {};
     char recvMessage[50] = {};
     int closeConnect = 0;
+    int mode = 0; // 0 : chatting , 1 : yatch
     struct ClientInfo *client = (struct ClientInfo *)arg;
     write(client->socket, "welcome to chatting server!0", (int)strlen("welcome to chatting server!0")+1);
 
     while(1){
+        // switch로 yatch mode, general mode 나누기
         if(closeConnect == 1){
             break;
         }
-        read(client->socket, recvMessage, sizeof(recvMessage) - 1);
-        printf("From client %d : ", client->uid);
-        printf("%s\n", recvMessage);
+        switch(mode){
+            case 0:
+                read(client->socket, recvMessage, sizeof(recvMessage) - 1);
+                printf("From client %d : ", client->uid);
+                printf("%s\n", recvMessage);
 
-        if(strcmp(recvMessage, "quit") == 0){
-            printf("Client %d has left.\n", client->uid);
-            closeConnect = 1;
+                if(strcmp(recvMessage, "quit") == 0){
+                    printf("Client %d has left.\n", client->uid);
+                    closeConnect = 1;
+                }
+                if(strcmp(recvMessage, "yatch") == 0){
+
+                }
+                else{
+                    broadcast(recvMessage, client->uid);
+                }
+                printf("\n");
+                bzero(sendMessage, sizeof(sendMessage));
+                bzero(recvMessage, sizeof(recvMessage));
+                break;
+
+            case 1:
+                break;
         }
-        else{
-            broadcast(recvMessage, client->uid);
-        }
-        printf("\n");
-        bzero(sendMessage, sizeof(sendMessage));
-        bzero(recvMessage, sizeof(recvMessage));
     }
 
     close(client->socket);
