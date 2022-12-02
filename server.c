@@ -129,15 +129,12 @@ void *serverProcess(void* arg)
     struct ClientInfo *client = (struct ClientInfo *)arg;
     bzero(sendMessage, sizeof(sendMessage));
     bzero(recvMessage, sizeof(recvMessage));
-    // strcpy(sendMessage, "welcome to chatting server!0");
-    // write(client->socket, sendMessage, (int)strlen(sendMessage));
     writeWithUID(client->socket, 0, "welcome to chatting server!");
     sleep(0.5);
     sprintf(sendMessage, "Your client number is %d.", client->uid);
     writeWithUID(client->socket, 0, sendMessage);
 
     while(1){
-        // switch로 yatch mode, general mode 나누기
         if(closeConnect == 1){
             break;
         }
@@ -146,6 +143,17 @@ void *serverProcess(void* arg)
         bzero(recvMessage, sizeof(recvMessage));
 
         read(client->socket, recvMessage, sizeof(recvMessage) - 1);
+        if( (int)strlen(recvMessage) == 0){
+            closeConnect = 1;
+            strcpy(recvMessage, "Interrupt");
+            if(mode == MODE_YATCH){
+                if(yatchRoomList[roomNumber].roomStatus == WAITING_FOR_PLAYER){
+                    broadcast("Yatch Room Destroyed", 0);
+                    yatchRoomList[roomNumber].roomStatus = IDLE;
+                    mode = MODE_CHATTING;
+                }
+            }
+        }
         printf("From client %d : ", client->uid);
         printf("%s\n", recvMessage);
 
@@ -154,11 +162,18 @@ void *serverProcess(void* arg)
             closeConnect = 1;
 
             if(mode == MODE_YATCH){
-                winner = 3-playerId;
-                sprintf(sendMessage, "One player resigned, Winner is Player %d", winner);
-                roomBroadcast(roomNumber, sendMessage);
-                mode = MODE_CHATTING;
-                yatchRoomList[roomNumber].roomStatus = IDLE;
+                if(yatchRoomList[roomNumber].roomStatus == WAITING_FOR_PLAYER){
+                    broadcast("Yatch Room Destroyed", 0);
+                    yatchRoomList[roomNumber].roomStatus = IDLE;
+                    mode = MODE_CHATTING;
+                }
+                else{
+                    winner = 3-playerId;
+                    sprintf(sendMessage, "One player resigned, Winner is Player %d\n", winner);
+                    roomBroadcast(roomNumber, sendMessage);
+                    mode = MODE_CHATTING;
+                    yatchRoomList[roomNumber].roomStatus = IDLE;
+                }
             }
         }
 
@@ -171,15 +186,17 @@ void *serverProcess(void* arg)
                     }
                     else{
                         printf("Client %d has joined yatch room %d.\n", client->uid, roomNumber);
-                        broadcast("Yatch Room Created", 0);
+                        
                         if(yatchRoomList[roomNumber].roomStatus == WAITING_FOR_PLAYER){
-                            printf("Room %d, Player1 is %d.\n", roomNumber,client->uid);
+                            broadcast("Yatch Room Created", 0);
+                            printf("Room %d, Player1 is Client %d.\n", roomNumber,client->uid);
                             playerId = 1;
                             yatchRoomList[roomNumber].clients[0] = client;
                             writeWithUID(client->socket, 0, "You are Player 1");
                             writeWithUID(client->socket, 0, "Waiting for another player...");
                         }
                         else{
+                            broadcast("Yatch Room Closed", 0);
                             printf("Room %d, Player2 is %d.\n", roomNumber,client->uid);
                             playerId = 2;
                             yatchRoomList[roomNumber].clients[1] = client;
@@ -407,6 +424,7 @@ int getEmptyRoomNumber()
 
 int main()
 {
+    char sendMessage[50] = {};
     char ipAddr[16] = "127.0.0.1";
     int portNum = 12345;
 
@@ -476,11 +494,14 @@ int main()
                 new->socket = clientSocket;
                 new->address = clientAddr;
                 
-                printf("Client %d connected to server.\n", new->uid);
+                sprintf(sendMessage, "Client %d has joined to channel.\n", new->uid);
+                printf("%s\n", sendMessage);
+                broadcast(sendMessage, 0);
                 addClient(new);
                 pthread_create(&tid, NULL, &serverProcess, (void*)new);
             }
         }
+        sleep(1);
     }
     close(serverSocket);
     printf("Server closed");

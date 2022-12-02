@@ -49,11 +49,23 @@ void *sender(void* arg){
 }
 
 void *receiver(void* arg){
-    char recvMessage[50] = {}; // 점수를 ascii로 받기
+    char recvMessage[50] = {};
     while(1){
         int recvLen = read(clientSocket, recvMessage, sizeof(recvMessage));
         int uid = recvMessage[recvLen-1] - '0';
         recvMessage[recvLen-1] = '\0';
+
+        if(uid<0 || uid > 10){
+            endFlag = 1;
+            break;
+        }
+        if((int)strlen(recvMessage) == 0){
+            
+            printf("ERROR : Server side error\n");
+            endFlag = 1;
+            break;
+        }
+
         if(uid == 0){
             printf("Message from server : ");
         }
