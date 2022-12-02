@@ -7,42 +7,77 @@
 #include <string.h>
 #include "yatch.h"
 
+#define MODE_YATCH 1
+#define MODE_CHAT 0
+
+// gameStatus codes
+#define FIRST_ROLL 0
+#define SELECTION 1
+#define SECOND_ROLL 2
+#define SCORING 3
+
 int clientSocket;
 int endFlag = 0;
 int mode = 0; // 0 : chatting, 1 : yatch
+int gameStatus = 0;
+
+struct ScoreBoard myBoard;
+struct ScoreBoard counterBoard;
 
 void *sender(void* arg){
     char sendMessage[50] = {};
     while(1){
-        scanf("%s", sendMessage);
+        // scanf("%[^\n]s", sendMessage);
+        gets(sendMessage);
+        if(mode == MODE_YATCH){
+            if(strcmp(sendMessage, "help") == 0){
+                print_help();
+                continue;
+            }
+        }
+
         write(clientSocket, sendMessage, (int)strlen(sendMessage));
         if(strcmp(sendMessage, "quit") == 0){
             endFlag = 1;
             break;
         }
+        if(strcmp(sendMessage, "yatch") == 0){
+            mode = 1;
+        }
+        bzero(sendMessage, sizeof(sendMessage));
     }
 }
 
 void *receiver(void* arg){
     char recvMessage[50] = {}; // 점수를 ascii로 받기
     while(1){
-        int recvLen = read(clientSocket, recvMessage, sizeof(recvMessage) - 1);
-        int uid = recvMessage[recvLen-2] - '0';
-        recvMessage[recvLen-2] = '\0';
+        int recvLen = read(clientSocket, recvMessage, sizeof(recvMessage));
+        int uid = recvMessage[recvLen-1] - '0';
+        recvMessage[recvLen-1] = '\0';
         if(uid == 0){
             printf("Message from server : ");
+        }
+        else if(mode == MODE_YATCH){
+            printf("Message from player %d : ", uid);
         }
         else{
             printf("Message from %d : ", uid);
         }
-        printf("%s\n", recvMessage);
+        if(strcmp(recvMessage, "quit")==0){
+            printf("Client %d has left channel.\n", uid);
+        }
+        else{
+            printf("%s\n", recvMessage);
+        }
+
+        bzero(recvMessage, sizeof(recvMessage));
     }
 }
 
 int main()
 {
     char ipAddr[16] = "127.0.0.1";
-    int portNum = 1234;
+    int portNum = 12345;
 
     pthread_t senderThread;
     pthread_t receiverThread;
@@ -87,7 +122,7 @@ int main()
     else{
         printf("Initializing client...receiver established\n");
     }
-    printf("Client initialized, disconnect command is 'quit'.\n");
+    printf("Client initialized, disconnect command is 'quit'.\n\n\n");
 
     while(1){
         if(endFlag == 1){
