@@ -22,7 +22,7 @@ const int IDLE = 0;                 // 빈 방
 const int WAITING_FOR_PLAYER = 1;   // 한 사람이 입장해 다른 플레이어의 입장을 기다리는 상태
 const int IN_GAME = 2;              // 게임 진행 중인 상태
 
-const int GAME_STAGE_AMOUNT = 12;   // 한 게임에 진행할 스테이지 수, 기본 12
+const int GAME_STAGE_AMOUNT = 11;   // 한 게임에 진행할 스테이지 수, 기본 11
 
 /*
  * 구조체 이름 : ClientInfo
