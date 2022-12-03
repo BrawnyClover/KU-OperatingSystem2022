@@ -464,7 +464,7 @@ void *serverProcess(void* arg)
                     }
                 }
                 else{
-                    writeWithUID(                                                                                   // 어떤 명령어도 아닌 경우
+                    writeWithUID(                                                                                   // 내 차례가 아닌 경우
                         yatchRoomList[roomNumber].clients[1-(playerId-1)]->socket, playerId, recvMessage);          // 다른 플레이어에게 메세지 전달
                 }
                 break;
