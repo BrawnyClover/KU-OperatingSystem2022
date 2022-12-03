@@ -126,7 +126,7 @@ static void calc_point(struct ScoreBoard *board, int dice[])
     int check[6] = {0,0,0,0,0,0};                                           // 주사위의 각 눈이 몇 개가 나왔는지를 저장하는 배열
     int dual = -1;                                                          // 2개가 나온 값
     int triple = -1;                                                        // 3개가 나온 값
-
+    int total_dice = 0;
     for(int i=0; i<5; i++){                                                 // 일반적인 값 계산
         num[i] = dice[i];
         if(num[i] == 1){board->ones += num[i]; check[0]++;}                 // ones에 1 저장
@@ -136,11 +136,12 @@ static void calc_point(struct ScoreBoard *board, int dice[])
         if(num[i] == 5){board->fives += num[i]; check[4]++;}                // fives에 5 저장
         if(num[i] == 6){board->sixes += num[i]; check[5]++;}                // sixes에 6 저장
         printf("%d ", dice[i]);
+        total_dice += num[i];                                               // 주사위 눈의 총합은 full house나 four of a kind를 구할때 사용한다.
     }
     
     for(int i=0; i<6; i++){                                                 // 특수 족보 계산
         if(check[i] >= 4){                                                  // Four of a kind : 4개가 동일한 눈이 나온 경우
-            board->foKind = (i+1)*check[i];
+            board->foKind = total_dice;
         }
         if(check[i] == 5){                                                  // Yatch : 5개가 동일한 눈이 나온 경우 고정 50점
             board->yatch = 50;
@@ -150,14 +151,23 @@ static void calc_point(struct ScoreBoard *board, int dice[])
         if(check[i] == 3){triple = i+1;}                                    // 3개가 나온 값을 triple에 저장
     }
 
-    if(check[0] == 1 && check[1] == 1 && check[2] == 1 && check[3] == 1 && check[4] == 1){ // Small Straight : 1 2 3 4 5가 나온 경우 고정 30점
-        board->sStraight = 30;
+    if(check[0] == 1 && check[1] == 1 && check[2] == 1 && check[3] == 1){ // Small Straight : 1 2 3 4, 2 3 4 5, 3 4 5 6가 나온 경우 고정 15점
+        board->sStraight = 15;
     }
-    if(check[1] == 1 &&check[2] == 1 &&check[3] == 1 &&check[4] == 1 &&check[5] == 1){ // Large Straight : 2 3 4 5 6이 나온 경우 고정 30점
+    if(check[1] == 1 && check[2] == 1 && check[3] == 1 && check[4] == 1){ // Small Straight : 1 2 3 4, 2 3 4 5, 3 4 5 6가 나온 경우 고정 15점
+        board->sStraight = 15;
+    }
+    if(check[2] == 1 && check[3] == 1 && check[4] == 1 && check[5] == 1){ // Small Straight : 1 2 3 4, 2 3 4 5, 3 4 5 6가 나온 경우 고정 15점
+        board->sStraight = 15;
+    }
+    if(check[0] == 1 && check[1] == 1 && check[2] == 1 && check[3] == 1 && check[4] == 1){ // Large Straight : 1 2 3 4 5, 2 3 4 5 6이 나온 경우 고정 30점
+        board->lStraight = 30;
+    }
+    if(check[1] == 1 && check[2] == 1 && check[3] == 1 && check[4] == 1 && check[5] == 1){ // Large Straight : 1 2 3 4 5, 2 3 4 5 6이 나온 경우 고정 30점
         board->lStraight = 30;
     }
     if(dual!= -1 && triple != -1){                                           // Full house : 똑같은 눈이 3개, 2개 나온 경우
-        board->fHouse = 2*dual + 3*triple;
+        board->fHouse = total_dice;
     }
 }
 
